@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ConsolidaPDF · Cotações & Pedidos</title>
+<meta name="description" content="Consolidador offline de cotações e pedidos de venda em PDF — 100% local no navegador, sem servidor.">
+<meta name="theme-color" content="#24262B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ConsolidaPDF">
+<link rel="icon" type="image/png" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="manifest" href="./manifest.json">
+<style>
+  :root{
+    --grafite-900:#24262B; --grafite-700:#363B44; --grafite-500:#5B6470; --grafite-300:#9AA1AB;
+    --vermelho-600:#CC0935; --vermelho-700:#9F0729; --vermelho-100:#FAE6EB;
+    --papel:#F7F5F1; --superficie:#FFFFFF; --linha:#E4E1DA;
+    --sucesso:#2F9E44; --sucesso-bg:#E8F6EA;
+    --erro:#DC2626; --erro-bg:#FDECEC;
+    --alerta:#B45309; --alerta-bg:#FEF3E2;
+    --raio:10px; --raio-sm:6px;
+    --sombra:0 1px 2px rgba(26,29,35,.06), 0 8px 24px rgba(26,29,35,.06);
+    --fonte-base:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --fonte-mono:ui-monospace,"SF Mono","Cascadia Code","Roboto Mono",Consolas,monospace;
+  }
+  *,*::before,*::after{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    font-family:var(--fonte-base); background:var(--papel); color:var(--grafite-900);
+    -webkit-font-smoothing:antialiased; line-height:1.45;
+  }
+  button,input{ font-family:inherit; }
+  h1,h2,h3,p{ margin:0; }
+  .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  :focus-visible{ outline:2px solid var(--vermelho-600); outline-offset:2px; }
+
+  .app-shell{ max-width:1080px; margin:0 auto; padding:0 20px 64px; }
+
+  /* Topbar */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:16px 0; margin-bottom:24px; border-bottom:1px solid var(--linha);
+    position:sticky; top:0; background:var(--papel); z-index:20;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; min-width:0; }
+  .brand-mark{ width:34px; height:34px; border-radius:8px; flex:none; display:block; }
+  .brand-text{ display:flex; flex-direction:column; min-width:0; }
+  .brand-text strong{ font-size:15px; letter-spacing:.2px; }
+  .brand-sub{ font-size:12px; color:var(--grafite-500); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .topbar-status{ display:flex; align-items:center; gap:10px; flex:none; }
+
+  .badge{
+    display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600;
+    padding:5px 10px; border-radius:999px; background:var(--grafite-700); color:#fff; letter-spacing:.2px;
+  }
+  .badge--online{ background:var(--sucesso-bg); color:var(--sucesso); }
+  .badge--offline{ background:var(--erro-bg); color:var(--erro); }
+
+  .btn{
+    appearance:none; border:1px solid transparent; border-radius:var(--raio-sm);
+    font-size:13px; font-weight:600; padding:9px 14px; cursor:pointer; letter-spacing:.1px;
+    transition:transform .08s ease, background-color .15s ease, border-color .15s ease;
+    white-space:nowrap;
+  }
+  .btn:active{ transform:translateY(1px); }
+  .btn--primario{ background:var(--vermelho-600); color:#fff; }
+  .btn--primario:hover{ background:var(--vermelho-700); }
+  .btn--secundario{ background:var(--superficie); color:var(--grafite-900); border-color:var(--linha); }
+  .btn--secundario:hover{ border-color:var(--grafite-300); }
+  .btn--ghost{ background:transparent; color:var(--grafite-900); border-color:var(--grafite-900); }
+  .btn--ghost:hover{ background:var(--grafite-900); color:#fff; }
+  .btn--perigo-ghost{ background:transparent; color:var(--erro); border-color:var(--erro-bg); }
+  .btn--perigo-ghost:hover{ background:var(--erro-bg); }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; }
+
+  .panel{
+    background:var(--superficie); border:1px solid var(--linha); border-radius:var(--raio);
+    padding:20px; margin-bottom:20px;
+  }
+
+  /* Dropzone */
+  .dropzone{
+    position:relative; border:2px dashed var(--linha); border-radius:var(--raio);
+    background-color:var(--superficie);
+    background-image:
+      repeating-linear-gradient(0deg, rgba(26,29,35,.035) 0 1px, transparent 1px 26px),
+      repeating-linear-gradient(90deg, rgba(26,29,35,.035) 0 1px, transparent 1px 26px);
+    padding:44px 20px; text-align:center; cursor:pointer;
+    transition:border-color .15s ease, background-color .15s ease;
+  }
+  .dropzone:hover{ border-color:var(--grafite-300); }
+  .dropzone.arrastando{ border-color:var(--vermelho-600); background-color:var(--vermelho-100); }
+  .dropzone-icon{ width:40px; height:40px; margin:0 auto 14px; color:var(--vermelho-600); }
+  .dropzone-title{ font-size:16px; font-weight:700; margin-bottom:4px; }
+  .dropzone-sub{ font-size:13px; color:var(--grafite-500); }
+
+  .fila{ list-style:none; margin:14px 0 0; padding:0; display:flex; flex-direction:column; gap:6px; }
+  .item-fila{
+    display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:var(--raio-sm);
+    background:var(--papel); border:1px solid var(--linha); font-size:13px;
+  }
+  .item-fila-status{ width:8px; height:8px; border-radius:50%; flex:none; background:var(--grafite-300); }
+  .item-fila--processando .item-fila-status{ background:var(--vermelho-600); animation:pulsar 1s ease-in-out infinite; }
+  .item-fila--sucesso .item-fila-status{ background:var(--sucesso); }
+  .item-fila--erro .item-fila-status{ background:var(--erro); }
+  .item-fila--aviso .item-fila-status{ background:var(--alerta); }
+  @keyframes pulsar{ 50%{ opacity:.35; } }
+  .item-fila-nome{ font-weight:600; flex:none; max-width:40%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .item-fila-detalhe{ color:var(--grafite-500); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  /* Curva ABC */
+  .abc-resumo{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
+  .abc-pill{
+    background:var(--papel); border:1px solid var(--linha); border-radius:var(--raio-sm);
+    padding:12px 14px; border-left:4px solid var(--grafite-300);
+  }
+  .abc-pill--a{ border-left-color:var(--vermelho-600); }
+  .abc-pill--b{ border-left-color:var(--alerta); }
+  .abc-pill--c{ border-left-color:var(--grafite-300); }
+  .abc-pill-titulo{ display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--grafite-500); margin-bottom:6px; }
+  .abc-pill-valor{ display:block; font-family:var(--fonte-mono); font-size:18px; font-weight:600; }
+  .abc-pill-detalhe{ display:block; font-size:12px; color:var(--grafite-500); margin-top:2px; }
+
+  .abc-grafico{ margin-bottom:18px; }
+  .grafico-abc-svg{ width:100%; height:auto; display:block; }
+  .linha-referencia{ stroke:var(--grafite-300); stroke-width:1; }
+  .rotulo-referencia{ font-family:var(--fonte-mono); font-size:9px; fill:var(--grafite-500); }
+  .linha-cumulativa{ stroke:var(--grafite-900); stroke-width:2; }
+  .abc-grafico-legenda{ display:flex; gap:16px; flex-wrap:wrap; margin-top:8px; font-size:11px; color:var(--grafite-500); }
+  .abc-grafico-legenda span{ display:inline-flex; align-items:center; gap:5px; }
+  .abc-grafico-legenda i{ width:9px; height:9px; border-radius:2px; display:inline-block; }
+
+  .abc-listas{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .abc-titulo{ font-size:13px; font-weight:700; margin-bottom:8px; padding-bottom:6px; border-bottom:2px solid var(--linha); }
+  .abc-titulo--a{ color:var(--vermelho-600); border-bottom-color:var(--vermelho-600); }
+  .abc-titulo--b{ color:var(--alerta); border-bottom-color:var(--alerta); }
+  .tabela-abc{ font-size:12px; width:100%; border-collapse:collapse; }
+  .tabela-abc th{ text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.4px; color:var(--grafite-500); padding:5px 6px; border-bottom:1px solid var(--linha); }
+  .tabela-abc td{ padding:6px; border-bottom:1px solid var(--linha); }
+  .abc-nota{ font-size:12px; color:var(--grafite-500); margin:14px 0 0; }
+
+  .vazio-inline{ font-size:12px; color:var(--grafite-500); }
+
+  /* Filtros */
+  .filtros-grid{ display:grid; grid-template-columns:1.4fr 1.4fr auto; gap:12px; align-items:end; }
+  .filtros-grid label{ display:flex; flex-direction:column; gap:5px; font-size:12px; font-weight:600; color:var(--grafite-700); }
+  .filtros-grid input{
+    border:1px solid var(--linha); border-radius:var(--raio-sm); padding:8px 10px; font-size:13px; color:var(--grafite-900);
+  }
+  .filtros-grid input:focus-visible{ border-color:var(--vermelho-600); }
+
+  /* Tabela */
+  .tabela-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+  .tabela-header h2{ font-size:15px; }
+  .contagem{ color:var(--grafite-500); font-weight:400; }
+  #carteira-cliente-nome{ color:var(--vermelho-600); }
+  .carteira-dica{ font-size:12px; color:var(--grafite-500); margin:-6px 0 14px; }
+  .tabela-acoes{ display:flex; gap:8px; flex-wrap:wrap; }
+  .tabela-wrap{ overflow-x:auto; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  thead th{
+    text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--grafite-500);
+    font-weight:700; padding:8px 10px; border-bottom:1px solid var(--linha); white-space:nowrap;
+  }
+  tbody td{ padding:10px; border-bottom:1px solid var(--linha); vertical-align:middle; }
+  tr.linha-cotacao:hover{ background:var(--papel); }
+  tr.linha-cotacao.expandida{ background:var(--vermelho-100); }
+  .mono{ font-family:var(--fonte-mono); font-variant-numeric:tabular-nums; }
+  .valor{ font-weight:600; }
+  .arquivo-nome{ color:var(--grafite-500); max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .btn-expandir,.btn-excluir{
+    appearance:none; border:1px solid var(--linha); background:var(--superficie); border-radius:var(--raio-sm);
+    width:28px; height:28px; cursor:pointer; font-size:13px; color:var(--grafite-700); line-height:1;
+  }
+  .btn-excluir:hover{ border-color:var(--erro); color:var(--erro); }
+  .linha-detalhe td{ background:var(--papel); padding:14px 16px; }
+  .tabela-produtos{ font-size:12px; }
+  .tabela-produtos th{ padding:6px 8px; }
+  .tabela-produtos td{ padding:7px 8px; border-bottom:1px solid var(--linha); }
+
+  .estado-vazio{ text-align:center; padding:40px 20px; color:var(--grafite-500); }
+  .estado-vazio p:first-child{ font-weight:700; color:var(--grafite-900); margin-bottom:4px; }
+  .estado-vazio-sub{ font-size:13px; }
+
+  .rodape{ text-align:center; font-size:12px; color:var(--grafite-500); padding-top:8px; }
+
+  .toast-container{
+    position:fixed; bottom:18px; right:18px; display:flex; flex-direction:column; gap:8px;
+    z-index:1000; max-width:min(360px, calc(100vw - 36px));
+  }
+  .toast{
+    background:var(--grafite-900); color:#fff; padding:11px 15px; border-radius:var(--raio-sm);
+    font-size:13px; box-shadow:var(--sombra); opacity:0; transform:translateY(8px);
+    transition:opacity .25s ease, transform .25s ease;
+  }
+  .toast--visivel{ opacity:1; transform:translateY(0); }
+  .toast--sucesso{ background:var(--sucesso); }
+  .toast--erro{ background:var(--erro); }
+  .toast--alerta{ background:var(--alerta); }
+
+  @media (max-width:760px){
+    .abc-listas{ grid-template-columns:1fr; }
+    .filtros-grid{ grid-template-columns:1fr 1fr; }
+    .filtros-grid .btn{ grid-column:span 2; }
+    .brand-sub{ display:none; }
+  }
+  @media (max-width:480px){
+    .abc-resumo{ grid-template-columns:1fr; }
+    .filtros-grid{ grid-template-columns:1fr; }
+    .filtros-grid .btn{ grid-column:span 1; }
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{ animation-duration:.001ms !important; transition-duration:.001ms !important; }
+  }
+</style>
+</head>
+<body>
+<noscript>Este aplicativo precisa de JavaScript habilitado para funcionar.</noscript>
+
+<div class="app-shell">
+  <header class="topbar">
+    <div class="brand">
+      <img class="brand-mark" src="./icon-192.png" alt="Cortag">
+      <div class="brand-text">
+        <strong>ConsolidaPDF</strong>
+        <span class="brand-sub">Cotações &amp; Pedidos · Cortag</span>
+      </div>
+    </div>
+    <div class="topbar-status">
+      <span class="badge" id="badge-conexao">● Online</span>
+      <button class="btn btn--ghost" id="btn-instalar" hidden>Instalar app</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel" aria-label="Enviar PDFs de cotações">
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Arraste arquivos PDF aqui ou pressione Enter para selecionar">
+        <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+          <path d="M12 3v12m0-12 4 4m-4-4-4 4" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p class="dropzone-title">Arraste as cotações em PDF aqui</p>
+        <p class="dropzone-sub">ou clique para selecionar — múltiplos arquivos de uma vez</p>
+        <input type="file" id="input-arquivo" accept="application/pdf,.pdf" multiple hidden>
+      </div>
+      <ul class="fila" id="fila-processamento" aria-live="polite"></ul>
+    </section>
+
+    <section class="panel curva-abc-panel" aria-label="Curva ABC de produtos">
+      <div class="tabela-header">
+        <h2>Curva ABC de produtos</h2>
+      </div>
+      <div class="abc-resumo" id="abc-resumo"></div>
+      <div class="abc-grafico" id="abc-grafico"></div>
+      <div class="abc-listas">
+        <div class="abc-coluna">
+          <h3 class="abc-titulo abc-titulo--a">Classe A <span class="contagem" id="abc-a-contagem"></span></h3>
+          <div class="tabela-wrap">
+            <table class="tabela-abc">
+              <thead><tr><th>Código</th><th>Descrição</th><th>Valor</th><th>% acum.</th></tr></thead>
+              <tbody id="abc-a-corpo"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="abc-coluna">
+          <h3 class="abc-titulo abc-titulo--b">Classe B <span class="contagem" id="abc-b-contagem"></span></h3>
+          <div class="tabela-wrap">
+            <table class="tabela-abc">
+              <thead><tr><th>Código</th><th>Descrição</th><th>Valor</th><th>% acum.</th></tr></thead>
+              <tbody id="abc-b-corpo"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <p class="abc-nota" id="abc-c-nota"></p>
+    </section>
+
+    <section class="panel filtros-panel" aria-label="Filtros">
+      <div class="filtros-grid">
+        <label>Cliente
+          <input type="text" id="filtro-cliente" list="lista-clientes" placeholder="Todos">
+        </label>
+        <datalist id="lista-clientes"></datalist>
+        <label>Produto
+          <input type="text" id="filtro-produto" placeholder="Código ou descrição">
+        </label>
+        <button class="btn btn--secundario" id="btn-limpar-filtros">Limpar filtros</button>
+      </div>
+    </section>
+
+    <section class="panel carteira-panel" id="carteira-panel" hidden>
+      <div class="tabela-header">
+        <h2>Carteira de <span id="carteira-cliente-nome"></span> <span class="contagem" id="carteira-resumo"></span></h2>
+        <div class="tabela-acoes">
+          <button class="btn btn--secundario" id="btn-exportar-carteira">Exportar CSV</button>
+        </div>
+      </div>
+      <p class="carteira-dica">Todos os itens que este cliente já comprou pelo menos uma vez, considerando o histórico completo — ordenados por frequência de compra.</p>
+      <div class="tabela-wrap">
+        <table id="tabela-carteira">
+          <thead>
+            <tr><th>Código</th><th>Descrição</th><th>Qtd. total</th><th>Nº compras</th><th>Última compra</th><th>Últ. valor unit.</th></tr>
+          </thead>
+          <tbody id="carteira-corpo"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel tabela-panel">
+      <div class="tabela-header">
+        <h2>Cotações processadas <span class="contagem" id="contagem-resultados"></span></h2>
+        <div class="tabela-acoes">
+          <button class="btn btn--secundario" id="btn-exportar-csv">Exportar CSV</button>
+          <button class="btn btn--secundario" id="btn-exportar-json">Exportar JSON</button>
+          <button class="btn btn--perigo-ghost" id="btn-limpar-tudo">Limpar tudo</button>
+        </div>
+      </div>
+      <div class="tabela-wrap">
+        <table id="tabela-cotacoes" hidden>
+          <thead>
+            <tr>
+              <th><span class="sr-only">Expandir</span></th>
+              <th>Nº</th><th>Cliente</th><th>Emissão</th><th>Itens</th><th>Valor total</th><th>Arquivo</th>
+              <th><span class="sr-only">Excluir</span></th>
+            </tr>
+          </thead>
+          <tbody id="tabela-corpo"></tbody>
+        </table>
+        <div class="estado-vazio" id="estado-vazio">
+          <p>Nenhuma cotação processada ainda.</p>
+          <p class="estado-vazio-sub">Arraste arquivos PDF na área acima para começar a consolidar.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <p class="rodape">Processamento 100% local — nenhum arquivo sai do seu navegador.</p>
+</div>
+
+<div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+<script type="module">
+/* =========================================================================
+   ConsolidaPDF — consolidador offline de cotações/pedidos de venda em PDF
+   100% client-side. Extração via PDF.js + parsers em Regex. Dados em IndexedDB.
+   ========================================================================= */
+
+import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/6.1.200/pdf.min.mjs';
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/6.1.200/pdf.worker.min.mjs';
+
+/* ---------- Estado em memória ---------- */
+let cotacoesAtuais = [];
+
+/* =========================================================================
+   1. IndexedDB — persistência local
+   ========================================================================= */
+const DB_NOME = 'consolidaPdfDB';
+const DB_VERSAO = 1;
+const LOJA = 'cotacoes';
+
+function abrirDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NOME, DB_VERSAO);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(LOJA)) {
+        const loja = db.createObjectStore(LOJA, { keyPath: 'id' });
+        loja.createIndex('cliente', 'cliente', { unique: false });
+        loja.createIndex('dataEmissaoISO', 'dataEmissaoISO', { unique: false });
+      }
+    };
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function salvarCotacao(cotacao) {
+  const db = await abrirDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(LOJA, 'readwrite');
+    tx.objectStore(LOJA).put(cotacao);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function obterTodasCotacoes() {
+  const db = await abrirDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(LOJA, 'readonly');
+    const req = tx.objectStore(LOJA).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function excluirCotacao(id) {
+  const db = await abrirDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(LOJA, 'readwrite');
+    tx.objectStore(LOJA).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function limparTudo() {
+  const db = await abrirDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(LOJA, 'readwrite');
+    tx.objectStore(LOJA).clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+/* =========================================================================
+   2. Extração de texto do PDF (PDF.js) — reconstrução de linhas por posição Y
+   ========================================================================= */
+async function extrairTextoPDF(arrayBuffer) {
+  const documento = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const linhasTotais = [];
+  for (let i = 1; i <= documento.numPages; i++) {
+    const pagina = await documento.getPage(i);
+    const conteudo = await pagina.getTextContent();
+    linhasTotais.push(...agruparEmLinhas(conteudo.items));
+  }
+  return linhasTotais.join('\n');
+}
+
+// PDF.js devolve "itens" de texto soltos, cada um com sua posição (transform).
+// Agrupar por proximidade vertical evita quebras de linha ruidosas e reconstrói
+// a ordem visual correta das colunas (esquerda -> direita).
+function agruparEmLinhas(itens) {
+  const tolerancia = 2;
+  const linhas = [];
+  for (const item of itens) {
+    if (!item.str) continue;
+    const y = item.transform[5];
+    let linha = linhas.find(l => Math.abs(l.y - y) < tolerancia);
+    if (!linha) { linha = { y, itens: [] }; linhas.push(linha); }
+    linha.itens.push(item);
+  }
+  linhas.sort((a, b) => b.y - a.y);
+  return linhas.map(l => {
+    l.itens.sort((a, b) => a.transform[4] - b.transform[4]);
+    return l.itens.map(it => it.str).join(' ').replace(/\s+/g, ' ').trim();
+  });
+}
+
+/* =========================================================================
+   3. Parsers em Regex
+   ========================================================================= */
+function limparNumero(str) {
+  if (str === undefined || str === null) return 0;
+  let s = String(str).trim().replace(/[^\d.,-]/g, '');
+  if (!s) return 0;
+  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  const valor = parseFloat(s);
+  return isNaN(valor) ? 0 : valor;
+}
+
+function extrairCliente(texto) {
+  const m = texto.match(/Cliente\s*:\s*(?:\d{2,10}\s*[-–—]?\s*)?([^\n\r]{2,120})/i);
+  if (!m) return null;
+  const nome = m[1].trim().replace(/\s{2,}.*$/, '').trim();
+  return nome || null;
+}
+
+function extrairDataEmissao(texto) {
+  const m = texto.match(/(?:Data\s+de\s+Emiss[ãa]o|Emiss[ãa]o|Data)\s*:?\s*(\d{2})\/(\d{2})\/(\d{4})/i);
+  if (!m) return { data: null, dataISO: null };
+  const [, dd, mm, aaaa] = m;
+  return { data: `${dd}/${mm}/${aaaa}`, dataISO: `${aaaa}-${mm}-${dd}` };
+}
+
+function extrairNumeroCotacao(texto) {
+  const m = texto.match(/(?:Cota[çc][ãa]o\s+de\s+Venda|Pedido\s+de\s+Venda|Cota[çc][ãa]o|Pedido)\s*N[ºo°.]{0,2}\s*:?\s*(\d{1,12})/i);
+  return m ? m[1] : null;
+}
+
+// Linha de item esperada (formato real Cortag): <código 4-7 díg.> <descrição> <qtd> <unidade>
+// <valor unit.> <% IPI> <% ICMS> <valor ICMS-ST> <valor total> <preço unit. imp.> — 10 colunas.
+// Mantemos também um formato "simples" (só qtd/unidade/valor unit./valor total) como fallback,
+// caso outro tipo de documento venha com menos colunas.
+// A unidade ("Un", "Pc"...) é maiúscula+minúscula no PDF de origem, por isso a flag /i.
+// Quando a descrição quebra em 2-3 linhas no PDF, a linha do código não termina com os
+// campos numéricos — nesse caso juntamos com a(s) linha(s) seguinte(s) até a regex casar.
+const RE_ITEM_COMPLETA = /^(\d{4,7})\s+(.+?)\s+([\d.,]+)\s+([A-ZÇÃÕ]{1,4})\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s*$/i;
+const RE_ITEM_SIMPLES = /^(\d{4,7})\s+(.+?)\s+([\d.,]+)\s+([A-ZÇÃÕ]{1,4})\s+([\d.,]+)\s+([\d.,]+)\s*$/i;
+const RE_INICIO_ITEM = /^\d{4,7}\s/;
+
+function tentarCasarLinhaItem(str) {
+  let m = str.match(RE_ITEM_COMPLETA);
+  if (m) return { m, formato: 'completa' };
+  m = str.match(RE_ITEM_SIMPLES);
+  if (m) return { m, formato: 'simples' };
+  return null;
+}
+
+function extrairProdutos(texto) {
+  const linhas = texto.split(/\r?\n/).map(l => l.trim().replace(/[ \t]{2,}/g, ' ')).filter(Boolean);
+  const produtos = [];
+  let i = 0;
+  while (i < linhas.length) {
+    const linha = linhas[i];
+    if (!RE_INICIO_ITEM.test(linha)) { i++; continue; }
+
+    let candidata = linha;
+    let linhasConsumidas = 1;
+    let resultado = tentarCasarLinhaItem(candidata);
+
+    // descrição quebrada em mais de uma linha: junta com as próximas até casar (máx. 2 extras)
+    let tentativas = 0;
+    while (!resultado && tentativas < 2) {
+      const proxima = linhas[i + linhasConsumidas];
+      if (proxima === undefined || RE_INICIO_ITEM.test(proxima)) break;
+      candidata += ' ' + proxima;
+      linhasConsumidas++;
+      resultado = tentarCasarLinhaItem(candidata);
+      tentativas++;
+    }
+
+    if (resultado) {
+      const { m, formato } = resultado;
+      const codigo = m[1];
+      const descricao = m[2].trim();
+      const quantidade = limparNumero(m[3]);
+      const unidade = m[4].toUpperCase();
+      const valorUnitario = limparNumero(m[5]);
+      // "completa" (10 grupos): valor total é o penúltimo grupo (índice 9), antes do preço unit. imp.
+      // "simples" (6 grupos): valor total é o último grupo (índice 6).
+      let valorTotal = formato === 'completa' ? limparNumero(m[9]) : limparNumero(m[6]);
+      if (valorTotal === 0 && quantidade > 0 && valorUnitario > 0) {
+        valorTotal = +(quantidade * valorUnitario).toFixed(2);
+      }
+      if (!(quantidade === 0 && valorTotal === 0)) {
+        produtos.push({ codigo, descricao, quantidade, unidade, valorUnitario, valorTotal });
+      }
+    }
+    i += linhasConsumidas;
+  }
+  return produtos;
+}
+
+
+function interpretarCotacao(texto, nomeArquivo) {
+  const cliente = extrairCliente(texto);
+  const { data, dataISO } = extrairDataEmissao(texto);
+  const numero = extrairNumeroCotacao(texto);
+  const produtos = extrairProdutos(texto);
+  const valorTotalCotacao = +produtos.reduce((s, p) => s + p.valorTotal, 0).toFixed(2);
+  return {
+    id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`,
+    numeroCotacao: numero || 'S/N',
+    cliente: cliente || 'Não identificado',
+    dataEmissao: data || '—',
+    dataEmissaoISO: dataISO || '',
+    arquivoNome: nomeArquivo,
+    dataProcessamento: new Date().toISOString(),
+    produtos,
+    valorTotalCotacao
+  };
+}
+
+/* =========================================================================
+   4. Pipeline de processamento de arquivos
+   ========================================================================= */
+async function processarArquivos(fileList) {
+  const todos = Array.from(fileList);
+  const arquivosPDF = todos.filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+  const ignorados = todos.length - arquivosPDF.length;
+  if (ignorados > 0) notificar(`${ignorados} arquivo(s) ignorado(s) por não serem PDF.`, 'alerta');
+  if (!arquivosPDF.length) return;
+
+  let sucesso = 0, falha = 0;
+  for (const arquivo of arquivosPDF) {
+    const li = criarItemFila(arquivo.name);
+    try {
+      const buffer = await arquivo.arrayBuffer();
+      const texto = await extrairTextoPDF(buffer);
+      if (!texto.trim()) throw new Error('Nenhum texto encontrado — o PDF pode ser uma imagem escaneada.');
+      const cotacao = interpretarCotacao(texto, arquivo.name);
+      await salvarCotacao(cotacao);
+      if (cotacao.produtos.length) {
+        atualizarItemFila(li, 'sucesso', `${cotacao.cliente} · ${cotacao.produtos.length} itens · ${formatarMoeda(cotacao.valorTotalCotacao)}`);
+      } else {
+        atualizarItemFila(li, 'aviso', 'Salvo, mas nenhum item de produto foi identificado.');
+      }
+      sucesso++;
+    } catch (erro) {
+      console.error('Erro ao processar', arquivo.name, erro);
+      atualizarItemFila(li, 'erro', erro.message || 'Falha ao processar este arquivo.');
+      falha++;
+    }
+  }
+  await atualizarInterfaceCompleta();
+  notificar(`${sucesso} cotação(ões) processada(s)${falha ? `, ${falha} com erro` : ''}.`, falha ? 'alerta' : 'sucesso');
+}
+
+function criarItemFila(nomeArquivo) {
+  const fila = document.getElementById('fila-processamento');
+  const li = document.createElement('li');
+  li.className = 'item-fila item-fila--processando';
+  li.innerHTML = `
+    <span class="item-fila-status"></span>
+    <span class="item-fila-nome">${escaparHTML(nomeArquivo)}</span>
+    <span class="item-fila-detalhe">Processando…</span>
+  `;
+  fila.prepend(li);
+  return li;
+}
+
+function atualizarItemFila(li, status, detalhe) {
+  li.className = `item-fila item-fila--${status}`;
+  li.querySelector('.item-fila-detalhe').textContent = detalhe;
+}
+
+/* =========================================================================
+   5. Filtros, métricas e renderização
+   ========================================================================= */
+function aplicarFiltros(lista) {
+  const cliente = document.getElementById('filtro-cliente').value.trim().toLowerCase();
+  const produtoBusca = document.getElementById('filtro-produto').value.trim().toLowerCase();
+
+  return lista.filter(c => {
+    if (cliente && !c.cliente.toLowerCase().includes(cliente)) return false;
+    if (produtoBusca) {
+      const encontrou = c.produtos.some(p =>
+        p.descricao.toLowerCase().includes(produtoBusca) || p.codigo.toLowerCase().includes(produtoBusca)
+      );
+      if (!encontrou) return false;
+    }
+    return true;
+  });
+}
+
+function ordenarCotacoes(lista) {
+  return [...lista].sort((a, b) => {
+    const chaveA = a.dataEmissaoISO || '0000-00-00';
+    const chaveB = b.dataEmissaoISO || '0000-00-00';
+    if (chaveA !== chaveB) return chaveB.localeCompare(chaveA);
+    return (b.dataProcessamento || '').localeCompare(a.dataProcessamento || '');
+  });
+}
+
+// Agrega o valor total vendido por produto (código+descrição), somando todas as ocorrências
+// nas cotações da lista recebida (já filtrada por Cliente/Produto).
+function agregarProdutosPorValor(lista) {
+  const mapa = new Map();
+  lista.forEach(c => c.produtos.forEach(p => {
+    const chave = p.codigo || p.descricao;
+    const atual = mapa.get(chave) || { codigo: p.codigo, descricao: p.descricao, valorTotal: 0 };
+    atual.valorTotal += p.valorTotal;
+    mapa.set(chave, atual);
+  }));
+  return [...mapa.values()];
+}
+
+// Classificação ABC (curva de Pareto): ordena por valor decrescente, calcula o % acumulado
+// do faturamento e classifica cada produto em A (até 80% acumulado), B (até 95%) ou C (resto).
+function classificarABC(produtosAgregados) {
+  const ordenados = [...produtosAgregados].sort((a, b) => b.valorTotal - a.valorTotal);
+  const totalGeral = ordenados.reduce((s, p) => s + p.valorTotal, 0) || 1;
+  let acumulado = 0;
+  return ordenados.map(p => {
+    acumulado += p.valorTotal;
+    const cumulativoPct = (acumulado / totalGeral) * 100;
+    const classe = cumulativoPct <= 80 ? 'A' : (cumulativoPct <= 95 ? 'B' : 'C');
+    return { ...p, cumulativoPct, classe };
+  });
+}
+
+function construirSvgParetoABC(classificados) {
+  const MAX_BARRAS = 40;
+  const exibidos = classificados.slice(0, MAX_BARRAS);
+  const larguraTotal = 760, alturaTotal = 200;
+  const margem = { esq: 4, dir: 4, topo: 10, base: 4 };
+  const larguraUtil = larguraTotal - margem.esq - margem.dir;
+  const alturaUtil = alturaTotal - margem.topo - margem.base;
+  const n = Math.max(exibidos.length, 1);
+  const larguraBarra = larguraUtil / n;
+  const maxValor = Math.max(...exibidos.map(p => p.valorTotal), 1);
+  const cores = { A: 'var(--vermelho-600)', B: 'var(--alerta)', C: 'var(--grafite-300)' };
+
+  const barras = exibidos.map((p, i) => {
+    const x = margem.esq + i * larguraBarra;
+    const h = Math.max((p.valorTotal / maxValor) * alturaUtil, 1);
+    const y = margem.topo + (alturaUtil - h);
+    const w = Math.max(larguraBarra * 0.8, 0.5);
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${cores[p.classe]}"><title>${escaparHTML(p.descricao)} — ${formatarMoeda(p.valorTotal)} (Classe ${p.classe})</title></rect>`;
+  }).join('');
+
+  const pontos = exibidos.map((p, i) => {
+    const x = margem.esq + i * larguraBarra + larguraBarra / 2;
+    const y = margem.topo + (alturaUtil - (p.cumulativoPct / 100) * alturaUtil);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+
+  const y80 = margem.topo + alturaUtil * 0.20;
+  const y95 = margem.topo + alturaUtil * 0.05;
+
+  return `<svg viewBox="0 0 ${larguraTotal} ${alturaTotal}" class="grafico-abc-svg" role="img" aria-label="Curva ABC: produtos ordenados por valor vendido com percentual acumulado">
+    <line x1="${margem.esq}" y1="${y80.toFixed(1)}" x2="${larguraTotal - margem.dir}" y2="${y80.toFixed(1)}" class="linha-referencia"/>
+    <line x1="${margem.esq}" y1="${y95.toFixed(1)}" x2="${larguraTotal - margem.dir}" y2="${y95.toFixed(1)}" class="linha-referencia"/>
+    <text x="${larguraTotal - margem.dir}" y="${(y80 - 3).toFixed(1)}" class="rotulo-referencia" text-anchor="end">80%</text>
+    <text x="${larguraTotal - margem.dir}" y="${(y95 - 3).toFixed(1)}" class="rotulo-referencia" text-anchor="end">95%</text>
+    ${barras}
+    <polyline points="${pontos}" fill="none" class="linha-cumulativa"/>
+  </svg>`;
+}
+
+function renderizarCurvaABC(lista) {
+  const agregados = agregarProdutosPorValor(lista);
+  const classificados = classificarABC(agregados);
+  const totalGeral = classificados.reduce((s, p) => s + p.valorTotal, 0);
+
+  const porClasse = { A: [], B: [], C: [] };
+  classificados.forEach(p => porClasse[p.classe].push(p));
+
+  const resumo = document.getElementById('abc-resumo');
+  if (!classificados.length) {
+    resumo.innerHTML = '<p class="vazio-inline">Sem dados ainda — processe cotações para ver a curva ABC.</p>';
+    document.getElementById('abc-grafico').innerHTML = '';
+    document.getElementById('abc-a-corpo').innerHTML = '';
+    document.getElementById('abc-b-corpo').innerHTML = '';
+    document.getElementById('abc-a-contagem').textContent = '';
+    document.getElementById('abc-b-contagem').textContent = '';
+    document.getElementById('abc-c-nota').textContent = '';
+    return;
+  }
+
+  resumo.innerHTML = ['A', 'B', 'C'].map(classe => {
+    const itens = porClasse[classe];
+    const valor = itens.reduce((s, p) => s + p.valorTotal, 0);
+    const pctFaturamento = totalGeral ? (valor / totalGeral * 100) : 0;
+    const pctProdutos = classificados.length ? (itens.length / classificados.length * 100) : 0;
+    return `<div class="abc-pill abc-pill--${classe.toLowerCase()}">
+      <span class="abc-pill-titulo">Classe ${classe}</span>
+      <span class="abc-pill-valor">${itens.length} produto${itens.length === 1 ? '' : 's'}</span>
+      <span class="abc-pill-detalhe">${pctProdutos.toFixed(0)}% dos itens · ${pctFaturamento.toFixed(0)}% do faturamento</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('abc-grafico').innerHTML = construirSvgParetoABC(classificados) + `
+    <div class="abc-grafico-legenda">
+      <span><i style="background:var(--vermelho-600)"></i>Classe A</span>
+      <span><i style="background:var(--alerta)"></i>Classe B</span>
+      <span><i style="background:var(--grafite-300)"></i>Classe C</span>
+      <span>— linha escura: % acumulado do faturamento</span>
+    </div>`;
+
+  const linhaAbc = p => `
+    <tr>
+      <td class="mono">${escaparHTML(p.codigo)}</td>
+      <td>${escaparHTML(truncar(p.descricao, 40))}</td>
+      <td class="mono">${formatarMoeda(p.valorTotal)}</td>
+      <td class="mono">${p.cumulativoPct.toFixed(0)}%</td>
+    </tr>`;
+
+  document.getElementById('abc-a-contagem').textContent = `(${porClasse.A.length})`;
+  document.getElementById('abc-b-contagem').textContent = `(${porClasse.B.length})`;
+  document.getElementById('abc-a-corpo').innerHTML = porClasse.A.length
+    ? porClasse.A.map(linhaAbc).join('') : '<tr><td colspan="4" class="vazio-inline">Nenhum item na classe A.</td></tr>';
+  document.getElementById('abc-b-corpo').innerHTML = porClasse.B.length
+    ? porClasse.B.map(linhaAbc).join('') : '<tr><td colspan="4" class="vazio-inline">Nenhum item na classe B.</td></tr>';
+
+  document.getElementById('abc-c-nota').textContent = porClasse.C.length
+    ? `Classe C (baixo giro, não listada item a item): ${porClasse.C.length} produto(s), ${(porClasse.C.reduce((s,p)=>s+p.valorTotal,0)/ (totalGeral||1) * 100).toFixed(0)}% do faturamento.`
+    : '';
+}
+
+function renderizarFiltroClientes(lista) {
+  const datalist = document.getElementById('lista-clientes');
+  const nomes = [...new Set(lista.map(c => c.cliente).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  datalist.innerHTML = nomes.map(n => `<option value="${escaparHTML(n)}"></option>`).join('');
+}
+
+function renderizarTabela(lista) {
+  const corpo = document.getElementById('tabela-corpo');
+  const vazio = document.getElementById('estado-vazio');
+  const tabela = document.getElementById('tabela-cotacoes');
+  document.getElementById('contagem-resultados').textContent = lista.length ? `(${lista.length})` : '';
+
+  if (!lista.length) {
+    corpo.innerHTML = '';
+    tabela.hidden = true;
+    vazio.hidden = false;
+    return;
+  }
+  tabela.hidden = false;
+  vazio.hidden = true;
+
+  corpo.innerHTML = lista.map(c => `
+    <tr class="linha-cotacao" data-id="${escaparHTML(c.id)}">
+      <td><button class="btn-expandir" type="button" aria-label="Ver detalhes" data-id="${escaparHTML(c.id)}">▸</button></td>
+      <td class="mono">${escaparHTML(c.numeroCotacao)}</td>
+      <td>${escaparHTML(c.cliente)}</td>
+      <td class="mono">${escaparHTML(c.dataEmissao)}</td>
+      <td class="mono">${c.produtos.length}</td>
+      <td class="mono valor">${formatarMoeda(c.valorTotalCotacao)}</td>
+      <td class="arquivo-nome" title="${escaparHTML(c.arquivoNome)}">${escaparHTML(truncar(c.arquivoNome, 24))}</td>
+      <td><button class="btn-excluir" type="button" aria-label="Excluir cotação" data-id="${escaparHTML(c.id)}">✕</button></td>
+    </tr>
+    <tr class="linha-detalhe" data-detalhe-de="${escaparHTML(c.id)}" hidden>
+      <td colspan="8">
+        <table class="tabela-produtos">
+          <thead><tr><th>Código</th><th>Descrição</th><th>Qtd</th><th>Un.</th><th>Vlr. Unit.</th><th>Vlr. Total</th></tr></thead>
+          <tbody>
+            ${c.produtos.map(p => `
+              <tr>
+                <td class="mono">${escaparHTML(p.codigo)}</td>
+                <td>${escaparHTML(p.descricao)}</td>
+                <td class="mono">${formatarNumero(p.quantidade)}</td>
+                <td class="mono">${escaparHTML(p.unidade)}</td>
+                <td class="mono">${formatarMoeda(p.valorUnitario)}</td>
+                <td class="mono">${formatarMoeda(p.valorTotal)}</td>
+              </tr>`).join('')}
+            ${c.produtos.length === 0 ? '<tr><td colspan="6" class="vazio-inline">Nenhum item identificado neste PDF.</td></tr>' : ''}
+          </tbody>
+        </table>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// Retorna o nome exato do cliente quando o campo de filtro casa integralmente com um
+// dos clientes já processados (ex.: escolhido na sugestão do datalist). Busca parcial
+// (texto digitado pela metade) retorna null e o painel de carteira fica oculto.
+function clienteExatoSelecionado() {
+  const valor = document.getElementById('filtro-cliente').value.trim().toLowerCase();
+  if (!valor) return null;
+  const nomesUnicos = [...new Set(cotacoesAtuais.map(c => c.cliente))];
+  return nomesUnicos.find(n => n.toLowerCase() === valor) || null;
+}
+
+// Carteira de produtos de um cliente: todos os itens distintos (por código) que ele já
+// comprou em qualquer cotação processada, com quantas vezes comprou, quantidade total e
+// o valor unitário/data da compra mais recente. Não é afetada pelos filtros de período/produto —
+// representa sempre o histórico completo do cliente.
+function obterCarteiraProdutos(nomeCliente) {
+  const cotacoesDoCliente = cotacoesAtuais.filter(c => c.cliente === nomeCliente);
+  const mapa = new Map();
+  cotacoesDoCliente.forEach(c => {
+    c.produtos.forEach(p => {
+      const chave = p.codigo || p.descricao;
+      const atual = mapa.get(chave) || {
+        codigo: p.codigo, descricao: p.descricao, unidade: p.unidade,
+        vezesComprado: 0, quantidadeTotal: 0, valorUnitarioRecente: p.valorUnitario,
+        ultimaCompraISO: '', ultimaCompra: ''
+      };
+      atual.vezesComprado += 1;
+      atual.quantidadeTotal += p.quantidade;
+      const dataISO = c.dataEmissaoISO || '';
+      if (dataISO >= atual.ultimaCompraISO) {
+        atual.ultimaCompraISO = dataISO;
+        atual.ultimaCompra = c.dataEmissao;
+        atual.valorUnitarioRecente = p.valorUnitario;
+      }
+      mapa.set(chave, atual);
+    });
+  });
+  return [...mapa.values()].sort((a, b) => {
+    if (b.vezesComprado !== a.vezesComprado) return b.vezesComprado - a.vezesComprado;
+    return (b.ultimaCompraISO || '').localeCompare(a.ultimaCompraISO || '');
+  });
+}
+
+function renderizarCarteira() {
+  const painel = document.getElementById('carteira-panel');
+  const nomeCliente = clienteExatoSelecionado();
+  if (!nomeCliente) { painel.hidden = true; return; }
+
+  const carteira = obterCarteiraProdutos(nomeCliente);
+  const totalCotacoes = new Set(cotacoesAtuais.filter(c => c.cliente === nomeCliente).map(c => c.id)).size;
+
+  document.getElementById('carteira-cliente-nome').textContent = nomeCliente;
+  document.getElementById('carteira-resumo').textContent =
+    carteira.length ? `${carteira.length} produto(s) distinto(s) · ${totalCotacoes} cotação(ões)` : '';
+
+  document.getElementById('carteira-corpo').innerHTML = carteira.length
+    ? carteira.map(p => `
+      <tr>
+        <td class="mono">${escaparHTML(p.codigo)}</td>
+        <td>${escaparHTML(p.descricao)}</td>
+        <td class="mono">${formatarNumero(p.quantidadeTotal)} ${escaparHTML(p.unidade)}</td>
+        <td class="mono">${p.vezesComprado}</td>
+        <td class="mono">${escaparHTML(p.ultimaCompra || '—')}</td>
+        <td class="mono">${formatarMoeda(p.valorUnitarioRecente)}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="6" class="vazio-inline">Nenhum item identificado nas cotações deste cliente.</td></tr>';
+
+  painel.hidden = false;
+}
+
+function renderizarResultados() {
+  const filtradas = aplicarFiltros(cotacoesAtuais);
+  renderizarCurvaABC(filtradas);
+  renderizarTabela(filtradas);
+  renderizarCarteira();
+}
+
+async function atualizarInterfaceCompleta() {
+  cotacoesAtuais = ordenarCotacoes(await obterTodasCotacoes());
+  renderizarFiltroClientes(cotacoesAtuais);
+  renderizarResultados();
+}
+
+/* =========================================================================
+   6. Exportação (CSV / JSON)
+   ========================================================================= */
+function timestampArquivo() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
+}
+
+function escaparCampoCSV(valor) {
+  if (/[;"\n\r]/.test(valor)) return '"' + valor.replace(/"/g, '""') + '"';
+  return valor;
+}
+
+function baixarArquivo(conteudo, nomeArquivo, tipo) {
+  const blob = new Blob([conteudo], { type: tipo });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nomeArquivo;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function exportarCSV() {
+  const lista = aplicarFiltros(cotacoesAtuais);
+  if (!lista.length) { notificar('Não há dados para exportar.', 'alerta'); return; }
+  const linhas = [['Cotacao', 'Cliente', 'Data Emissao', 'Codigo', 'Descricao', 'Quantidade', 'Unidade', 'Valor Unitario', 'Valor Total', 'Arquivo']];
+  lista.forEach(c => {
+    if (!c.produtos.length) {
+      linhas.push([c.numeroCotacao, c.cliente, c.dataEmissao, '', '', '', '', '', formatarNumero(c.valorTotalCotacao), c.arquivoNome]);
+    }
+    c.produtos.forEach(p => {
+      linhas.push([c.numeroCotacao, c.cliente, c.dataEmissao, p.codigo, p.descricao, formatarNumero(p.quantidade), p.unidade, formatarNumero(p.valorUnitario), formatarNumero(p.valorTotal), c.arquivoNome]);
+    });
+  });
+  const csv = linhas.map(l => l.map(campo => escaparCampoCSV(String(campo))).join(';')).join('\r\n');
+  baixarArquivo('\uFEFF' + csv, `cotacoes_${timestampArquivo()}.csv`, 'text/csv;charset=utf-8;');
+}
+
+function exportarJSON() {
+  const lista = aplicarFiltros(cotacoesAtuais);
+  if (!lista.length) { notificar('Não há dados para exportar.', 'alerta'); return; }
+  baixarArquivo(JSON.stringify(lista, null, 2), `cotacoes_${timestampArquivo()}.json`, 'application/json');
+}
+
+function exportarCarteiraCSV() {
+  const nomeCliente = clienteExatoSelecionado();
+  if (!nomeCliente) return;
+  const carteira = obterCarteiraProdutos(nomeCliente);
+  if (!carteira.length) { notificar('Não há produtos para exportar.', 'alerta'); return; }
+  const linhas = [['Codigo', 'Descricao', 'Qtd Total Comprada', 'Unidade', 'Numero de Compras', 'Ultima Compra', 'Ultimo Valor Unitario']];
+  carteira.forEach(p => {
+    linhas.push([p.codigo, p.descricao, formatarNumero(p.quantidadeTotal), p.unidade, String(p.vezesComprado), p.ultimaCompra || '', formatarNumero(p.valorUnitarioRecente)]);
+  });
+  const csv = linhas.map(l => l.map(campo => escaparCampoCSV(String(campo))).join(';')).join('\r\n');
+  const nomeArquivo = `carteira_${nomeCliente.replace(/[^a-z0-9]+/gi, '_').toLowerCase()}_${timestampArquivo()}.csv`;
+  baixarArquivo('\uFEFF' + csv, nomeArquivo, 'text/csv;charset=utf-8;');
+}
+
+/* =========================================================================
+   7. Utilitários
+   ========================================================================= */
+function formatarMoeda(valor) {
+  return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+function formatarNumero(valor, casas = 2) {
+  return (valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
+}
+function truncar(str, max) {
+  if (!str) return '';
+  return str.length > max ? str.slice(0, max - 1) + '…' : str;
+}
+function escaparHTML(str) {
+  const div = document.createElement('div');
+  div.textContent = str ?? '';
+  return div.innerHTML;
+}
+function notificar(mensagem, tipo = 'info') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast toast--${tipo}`;
+  toast.textContent = mensagem;
+  container.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('toast--visivel'));
+  setTimeout(() => {
+    toast.classList.remove('toast--visivel');
+    setTimeout(() => toast.remove(), 300);
+  }, 4200);
+}
+
+/* =========================================================================
+   8. PWA — service worker, status de conexão, prompt de instalação
+   ========================================================================= */
+function registrarServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(erro => {
+      console.warn('Service Worker não registrado (normal se aberto via file:// em vez de http/https):', erro.message);
+    });
+  });
+}
+
+function configurarStatusConexao() {
+  const badge = document.getElementById('badge-conexao');
+  const atualizar = () => {
+    const online = navigator.onLine;
+    badge.textContent = online ? '● Online' : '● Offline';
+    badge.className = `badge ${online ? 'badge--online' : 'badge--offline'}`;
+  };
+  window.addEventListener('online', atualizar);
+  window.addEventListener('offline', atualizar);
+  atualizar();
+}
+
+function configurarInstalacaoPWA() {
+  const btn = document.getElementById('btn-instalar');
+  let promptDiferido = null;
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    promptDiferido = e;
+    btn.hidden = false;
+  });
+
+  btn.addEventListener('click', async () => {
+    if (!promptDiferido) return;
+    btn.disabled = true;
+    promptDiferido.prompt();
+    await promptDiferido.userChoice;
+    promptDiferido = null;
+    btn.hidden = true;
+    btn.disabled = false;
+  });
+
+  window.addEventListener('appinstalled', () => {
+    btn.hidden = true;
+    notificar('Aplicativo instalado com sucesso.', 'sucesso');
+  });
+
+  const jaInstalado = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if (jaInstalado) btn.hidden = true;
+}
+
+/* =========================================================================
+   9. Ligação de eventos da interface
+   ========================================================================= */
+function configurarDropzone() {
+  const dropzone = document.getElementById('dropzone');
+  const inputArquivo = document.getElementById('input-arquivo');
+
+  dropzone.addEventListener('click', () => inputArquivo.click());
+  dropzone.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inputArquivo.click(); }
+  });
+  ['dragenter', 'dragover'].forEach(evento => {
+    dropzone.addEventListener(evento, (e) => { e.preventDefault(); dropzone.classList.add('arrastando'); });
+  });
+  ['dragleave', 'drop'].forEach(evento => {
+    dropzone.addEventListener(evento, (e) => { e.preventDefault(); dropzone.classList.remove('arrastando'); });
+  });
+  dropzone.addEventListener('drop', (e) => {
+    const arquivos = e.dataTransfer && e.dataTransfer.files;
+    if (arquivos && arquivos.length) processarArquivos(arquivos);
+  });
+  inputArquivo.addEventListener('change', () => {
+    if (inputArquivo.files.length) processarArquivos(inputArquivo.files);
+    inputArquivo.value = '';
+  });
+}
+
+function configurarFiltros() {
+  ['filtro-cliente', 'filtro-produto'].forEach(id => {
+    document.getElementById(id).addEventListener('input', renderizarResultados);
+  });
+  document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
+    document.getElementById('filtro-cliente').value = '';
+    document.getElementById('filtro-produto').value = '';
+    renderizarResultados();
+  });
+}
+
+function configurarExportacao() {
+  document.getElementById('btn-exportar-csv').addEventListener('click', exportarCSV);
+  document.getElementById('btn-exportar-json').addEventListener('click', exportarJSON);
+  document.getElementById('btn-exportar-carteira').addEventListener('click', exportarCarteiraCSV);
+}
+
+async function confirmarEExcluir(id) {
+  const cotacao = cotacoesAtuais.find(c => c.id === id);
+  if (!cotacao) return;
+  const ok = window.confirm(`Excluir a cotação nº ${cotacao.numeroCotacao} (${cotacao.cliente})? Esta ação não pode ser desfeita.`);
+  if (!ok) return;
+  await excluirCotacao(id);
+  await atualizarInterfaceCompleta();
+  notificar('Cotação excluída.', 'sucesso');
+}
+
+function configurarTabela() {
+  const corpo = document.getElementById('tabela-corpo');
+  corpo.addEventListener('click', (e) => {
+    const btnExpandir = e.target.closest('.btn-expandir');
+    if (btnExpandir) {
+      const id = btnExpandir.dataset.id;
+      const linhaDetalhe = corpo.querySelector(`.linha-detalhe[data-detalhe-de="${CSS.escape(id)}"]`);
+      if (linhaDetalhe) {
+        const estaOculta = linhaDetalhe.hidden;
+        linhaDetalhe.hidden = !estaOculta;
+        btnExpandir.textContent = estaOculta ? '▾' : '▸';
+        btnExpandir.closest('tr').classList.toggle('expandida', estaOculta);
+      }
+      return;
+    }
+    const btnExcluir = e.target.closest('.btn-excluir');
+    if (btnExcluir) confirmarEExcluir(btnExcluir.dataset.id);
+  });
+
+  document.getElementById('btn-limpar-tudo').addEventListener('click', async () => {
+    if (!cotacoesAtuais.length) return;
+    const ok = window.confirm('Isso vai apagar todas as cotações salvas neste navegador. Deseja continuar?');
+    if (!ok) return;
+    await limparTudo();
+    await atualizarInterfaceCompleta();
+    notificar('Todos os dados foram apagados.', 'sucesso');
+  });
+}
+
+/* =========================================================================
+   10. Inicialização
+   ========================================================================= */
+async function iniciar() {
+  registrarServiceWorker();
+  configurarStatusConexao();
+  configurarInstalacaoPWA();
+  configurarDropzone();
+  configurarFiltros();
+  configurarExportacao();
+  configurarTabela();
+  await atualizarInterfaceCompleta();
+}
+
+iniciar().catch(erro => {
+  console.error('Erro ao iniciar aplicação:', erro);
+  notificar('Ocorreu um erro ao iniciar o aplicativo.', 'erro');
+});
+</script>
+</body>
+</html>
