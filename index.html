@@ -132,24 +132,39 @@
   .abc-grafico-legenda span{ display:inline-flex; align-items:center; gap:5px; }
   .abc-grafico-legenda i{ width:9px; height:9px; border-radius:2px; display:inline-block; }
 
-  .abc-listas{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-  .abc-titulo{ font-size:13px; font-weight:700; margin-bottom:8px; padding-bottom:6px; border-bottom:2px solid var(--linha); }
-  .abc-titulo--a{ color:var(--vermelho-600); border-bottom-color:var(--vermelho-600); }
-  .abc-titulo--b{ color:var(--alerta); border-bottom-color:var(--alerta); }
-  .tabela-abc{ font-size:12px; width:100%; border-collapse:collapse; }
-  .tabela-abc th{ text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.4px; color:var(--grafite-500); padding:5px 6px; border-bottom:1px solid var(--linha); }
-  .tabela-abc td{ padding:6px; border-bottom:1px solid var(--linha); }
-  .abc-nota{ font-size:12px; color:var(--grafite-500); margin:14px 0 0; }
+  .badge-classe{
+    display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px;
+    border-radius:5px; font-size:11px; font-weight:700; color:#fff;
+  }
+  .badge-classe--a{ background:var(--vermelho-600); }
+  .badge-classe--b{ background:var(--alerta); }
+  .badge-classe--c{ background:var(--grafite-300); color:var(--grafite-700); }
 
   .vazio-inline{ font-size:12px; color:var(--grafite-500); }
 
-  /* Filtros */
-  .filtros-grid{ display:grid; grid-template-columns:1.4fr 1.4fr auto; gap:12px; align-items:end; }
-  .filtros-grid label{ display:flex; flex-direction:column; gap:5px; font-size:12px; font-weight:600; color:var(--grafite-700); }
-  .filtros-grid input{
-    border:1px solid var(--linha); border-radius:var(--raio-sm); padding:8px 10px; font-size:13px; color:var(--grafite-900);
+  /* Abas */
+  .tabs{ display:flex; gap:4px; margin-bottom:16px; border-bottom:1px solid var(--linha); }
+  .tab-btn{
+    appearance:none; border:none; background:transparent; cursor:pointer; font-size:13px; font-weight:600;
+    color:var(--grafite-500); padding:10px 14px; border-bottom:2px solid transparent; margin-bottom:-1px;
   }
-  .filtros-grid input:focus-visible{ border-color:var(--vermelho-600); }
+  .tab-btn:hover{ color:var(--grafite-900); }
+  .tab-btn--ativa{ color:var(--vermelho-600); border-bottom-color:var(--vermelho-600); }
+
+  /* Busca de cliente / estado vazio */
+  .busca-cliente-panel input{
+    width:100%; border:1px solid var(--linha); border-radius:var(--raio-sm); padding:10px 12px; font-size:14px; color:var(--grafite-900);
+  }
+  .busca-cliente-panel input:focus-visible{ border-color:var(--vermelho-600); }
+  .busca-cliente-panel label{ display:flex; flex-direction:column; gap:6px; font-size:12px; font-weight:600; color:var(--grafite-700); }
+  .estado-vazio-cliente{ text-align:center; color:var(--grafite-500); font-size:13px; padding:24px 16px; }
+
+  /* Filtros */
+  .filtros-panel label{ display:flex; flex-direction:column; gap:5px; font-size:12px; font-weight:600; color:var(--grafite-700); }
+  .filtros-panel input{
+    width:100%; border:1px solid var(--linha); border-radius:var(--raio-sm); padding:8px 10px; font-size:13px; color:var(--grafite-900);
+  }
+  .filtros-panel input:focus-visible{ border-color:var(--vermelho-600); }
 
   /* Tabela */
   .tabela-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
@@ -201,15 +216,10 @@
   .toast--alerta{ background:var(--alerta); }
 
   @media (max-width:760px){
-    .abc-listas{ grid-template-columns:1fr; }
-    .filtros-grid{ grid-template-columns:1fr 1fr; }
-    .filtros-grid .btn{ grid-column:span 2; }
     .brand-sub{ display:none; }
   }
   @media (max-width:480px){
     .abc-resumo{ grid-template-columns:1fr; }
-    .filtros-grid{ grid-template-columns:1fr; }
-    .filtros-grid .btn{ grid-column:span 1; }
   }
   @media (prefers-reduced-motion:reduce){
     *{ animation-duration:.001ms !important; transition-duration:.001ms !important; }
@@ -235,105 +245,94 @@
   </header>
 
   <main>
-    <section class="panel" aria-label="Enviar PDFs de cotações">
-      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Arraste arquivos PDF aqui ou pressione Enter para selecionar">
-        <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-          <path d="M12 3v12m0-12 4 4m-4-4-4 4" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <p class="dropzone-title">Arraste as cotações em PDF aqui</p>
-        <p class="dropzone-sub">ou clique para selecionar — múltiplos arquivos de uma vez</p>
-        <input type="file" id="input-arquivo" accept="application/pdf,.pdf" multiple hidden>
-      </div>
-      <ul class="fila" id="fila-processamento" aria-live="polite"></ul>
-    </section>
+    <nav class="tabs" role="tablist" aria-label="Navegação principal">
+      <button type="button" class="tab-btn tab-btn--ativa" id="tab-btn-cliente" role="tab" aria-selected="true" aria-controls="tab-cliente" data-tab="cliente">Cliente</button>
+      <button type="button" class="tab-btn" id="tab-btn-cotacoes" role="tab" aria-selected="false" aria-controls="tab-cotacoes" data-tab="cotacoes">Cotações <span class="contagem" id="tab-cotacoes-contagem"></span></button>
+    </nav>
 
-    <section class="panel curva-abc-panel" aria-label="Curva ABC de produtos">
-      <div class="tabela-header">
-        <h2>Curva ABC de produtos</h2>
-      </div>
-      <div class="abc-resumo" id="abc-resumo"></div>
-      <div class="abc-grafico" id="abc-grafico"></div>
-      <div class="abc-listas">
-        <div class="abc-coluna">
-          <h3 class="abc-titulo abc-titulo--a">Classe A <span class="contagem" id="abc-a-contagem"></span></h3>
-          <div class="tabela-wrap">
-            <table class="tabela-abc">
-              <thead><tr><th>Código</th><th>Descrição</th><th>Valor</th><th>% acum.</th></tr></thead>
-              <tbody id="abc-a-corpo"></tbody>
-            </table>
-          </div>
+    <div class="tab-painel" id="tab-cliente" role="tabpanel" aria-labelledby="tab-btn-cliente">
+      <section class="panel" aria-label="Enviar PDFs de cotações">
+        <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Arraste arquivos PDF aqui ou pressione Enter para selecionar">
+          <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <path d="M12 3v12m0-12 4 4m-4-4-4 4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <p class="dropzone-title">Arraste as cotações em PDF aqui</p>
+          <p class="dropzone-sub">ou clique para selecionar — múltiplos arquivos de uma vez</p>
+          <input type="file" id="input-arquivo" accept="application/pdf,.pdf" multiple hidden>
         </div>
-        <div class="abc-coluna">
-          <h3 class="abc-titulo abc-titulo--b">Classe B <span class="contagem" id="abc-b-contagem"></span></h3>
-          <div class="tabela-wrap">
-            <table class="tabela-abc">
-              <thead><tr><th>Código</th><th>Descrição</th><th>Valor</th><th>% acum.</th></tr></thead>
-              <tbody id="abc-b-corpo"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-      <p class="abc-nota" id="abc-c-nota"></p>
-    </section>
+      </section>
 
-    <section class="panel filtros-panel" aria-label="Filtros">
-      <div class="filtros-grid">
-        <label>Cliente
-          <input type="text" id="filtro-cliente" list="lista-clientes" placeholder="Todos">
+      <section class="panel busca-cliente-panel" aria-label="Buscar cliente">
+        <label>Buscar cliente
+          <input type="text" id="filtro-cliente" list="lista-clientes" placeholder="Digite o nome do cliente...">
         </label>
         <datalist id="lista-clientes"></datalist>
+      </section>
+
+      <p class="estado-vazio-cliente" id="estado-vazio-cliente">Busque um cliente acima para ver os produtos que ele já comprou.</p>
+
+      <section class="panel cliente-produtos-panel" id="cliente-produtos-panel" hidden>
+        <div class="tabela-header">
+          <h2>Produtos de <span id="carteira-cliente-nome"></span> <span class="contagem" id="carteira-resumo"></span></h2>
+          <div class="tabela-acoes">
+            <button class="btn btn--secundario" id="btn-exportar-carteira">Exportar CSV</button>
+          </div>
+        </div>
+        <p class="carteira-dica">Curva ABC por volume vendido (quantidade, não valor) — Classe A: o que ele mais compra · B: compra às vezes · C: comprou pouco. Histórico completo do cliente.</p>
+        <div class="abc-resumo" id="abc-resumo"></div>
+        <div class="abc-grafico" id="abc-grafico"></div>
+        <div class="tabela-wrap">
+          <table id="tabela-carteira">
+            <thead>
+              <tr><th>Classe</th><th>Código</th><th>Descrição</th><th>Qtd. total</th><th>Nº compras</th><th>Última compra</th><th>Últ. valor unit.</th></tr>
+            </thead>
+            <tbody id="carteira-corpo"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <div class="tab-painel" id="tab-cotacoes" role="tabpanel" aria-labelledby="tab-btn-cotacoes" hidden>
+      <section class="panel" aria-label="Log de processamento">
+        <div class="tabela-header"><h2>Log de processamento</h2></div>
+        <ul class="fila" id="fila-processamento" aria-live="polite"></ul>
+        <p class="vazio-inline" id="fila-vazia">Nenhum arquivo processado nesta sessão ainda.</p>
+      </section>
+
+      <section class="panel filtros-panel" aria-label="Filtro de produto">
         <label>Produto
-          <input type="text" id="filtro-produto" placeholder="Código ou descrição">
+          <input type="text" id="filtro-produto" placeholder="Buscar por código ou descrição">
         </label>
-        <button class="btn btn--secundario" id="btn-limpar-filtros">Limpar filtros</button>
-      </div>
-    </section>
+      </section>
 
-    <section class="panel carteira-panel" id="carteira-panel" hidden>
-      <div class="tabela-header">
-        <h2>Carteira de <span id="carteira-cliente-nome"></span> <span class="contagem" id="carteira-resumo"></span></h2>
-        <div class="tabela-acoes">
-          <button class="btn btn--secundario" id="btn-exportar-carteira">Exportar CSV</button>
+      <section class="panel tabela-panel">
+        <div class="tabela-header">
+          <h2>Todas as cotações <span class="contagem" id="contagem-resultados"></span></h2>
+          <div class="tabela-acoes">
+            <button class="btn btn--secundario" id="btn-exportar-csv">Exportar CSV</button>
+            <button class="btn btn--secundario" id="btn-exportar-json">Exportar JSON</button>
+            <button class="btn btn--perigo-ghost" id="btn-limpar-tudo">Limpar tudo</button>
+          </div>
         </div>
-      </div>
-      <p class="carteira-dica">Todos os itens que este cliente já comprou pelo menos uma vez, considerando o histórico completo — ordenados por frequência de compra.</p>
-      <div class="tabela-wrap">
-        <table id="tabela-carteira">
-          <thead>
-            <tr><th>Código</th><th>Descrição</th><th>Qtd. total</th><th>Nº compras</th><th>Última compra</th><th>Últ. valor unit.</th></tr>
-          </thead>
-          <tbody id="carteira-corpo"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="panel tabela-panel">
-      <div class="tabela-header">
-        <h2>Cotações processadas <span class="contagem" id="contagem-resultados"></span></h2>
-        <div class="tabela-acoes">
-          <button class="btn btn--secundario" id="btn-exportar-csv">Exportar CSV</button>
-          <button class="btn btn--secundario" id="btn-exportar-json">Exportar JSON</button>
-          <button class="btn btn--perigo-ghost" id="btn-limpar-tudo">Limpar tudo</button>
+        <div class="tabela-wrap">
+          <table id="tabela-cotacoes" hidden>
+            <thead>
+              <tr>
+                <th><span class="sr-only">Expandir</span></th>
+                <th>Nº</th><th>Cliente</th><th>Emissão</th><th>Itens</th><th>Valor total</th><th>Arquivo</th>
+                <th><span class="sr-only">Excluir</span></th>
+              </tr>
+            </thead>
+            <tbody id="tabela-corpo"></tbody>
+          </table>
+          <div class="estado-vazio" id="estado-vazio">
+            <p>Nenhuma cotação processada ainda.</p>
+            <p class="estado-vazio-sub">Arraste arquivos PDF na aba "Cliente" para começar a consolidar.</p>
+          </div>
         </div>
-      </div>
-      <div class="tabela-wrap">
-        <table id="tabela-cotacoes" hidden>
-          <thead>
-            <tr>
-              <th><span class="sr-only">Expandir</span></th>
-              <th>Nº</th><th>Cliente</th><th>Emissão</th><th>Itens</th><th>Valor total</th><th>Arquivo</th>
-              <th><span class="sr-only">Excluir</span></th>
-            </tr>
-          </thead>
-          <tbody id="tabela-corpo"></tbody>
-        </table>
-        <div class="estado-vazio" id="estado-vazio">
-          <p>Nenhuma cotação processada ainda.</p>
-          <p class="estado-vazio-sub">Arraste arquivos PDF na área acima para começar a consolidar.</p>
-        </div>
-      </div>
-    </section>
+      </section>
+    </div>
   </main>
 
   <p class="rodape">Processamento 100% local — nenhum arquivo sai do seu navegador.</p>
@@ -600,6 +599,8 @@ async function processarArquivos(fileList) {
   notificar(`${sucesso} cotação(ões) processada(s)${falha ? `, ${falha} com erro` : ''}.`, falha ? 'alerta' : 'sucesso');
 }
 
+const LIMITE_FILA = 20;
+
 function criarItemFila(nomeArquivo) {
   const fila = document.getElementById('fila-processamento');
   const li = document.createElement('li');
@@ -610,6 +611,8 @@ function criarItemFila(nomeArquivo) {
     <span class="item-fila-detalhe">Processando…</span>
   `;
   fila.prepend(li);
+  while (fila.children.length > LIMITE_FILA) fila.lastElementChild.remove();
+  document.getElementById('fila-vazia').hidden = true;
   return li;
 }
 
@@ -622,19 +625,11 @@ function atualizarItemFila(li, status, detalhe) {
    5. Filtros, métricas e renderização
    ========================================================================= */
 function aplicarFiltros(lista) {
-  const cliente = document.getElementById('filtro-cliente').value.trim().toLowerCase();
   const produtoBusca = document.getElementById('filtro-produto').value.trim().toLowerCase();
-
-  return lista.filter(c => {
-    if (cliente && !c.cliente.toLowerCase().includes(cliente)) return false;
-    if (produtoBusca) {
-      const encontrou = c.produtos.some(p =>
-        p.descricao.toLowerCase().includes(produtoBusca) || p.codigo.toLowerCase().includes(produtoBusca)
-      );
-      if (!encontrou) return false;
-    }
-    return true;
-  });
+  if (!produtoBusca) return lista;
+  return lista.filter(c =>
+    c.produtos.some(p => p.descricao.toLowerCase().includes(produtoBusca) || p.codigo.toLowerCase().includes(produtoBusca))
+  );
 }
 
 function ordenarCotacoes(lista) {
@@ -648,32 +643,27 @@ function ordenarCotacoes(lista) {
 
 // Agrega o valor total vendido por produto (código+descrição), somando todas as ocorrências
 // nas cotações da lista recebida (já filtrada por Cliente/Produto).
-function agregarProdutosPorValor(lista) {
-  const mapa = new Map();
-  lista.forEach(c => c.produtos.forEach(p => {
-    const chave = p.codigo || p.descricao;
-    const atual = mapa.get(chave) || { codigo: p.codigo, descricao: p.descricao, valorTotal: 0 };
-    atual.valorTotal += p.valorTotal;
-    mapa.set(chave, atual);
-  }));
-  return [...mapa.values()];
-}
-
-// Classificação ABC (curva de Pareto): ordena por valor decrescente, calcula o % acumulado
-// do faturamento e classifica cada produto em A (até 80% acumulado), B (até 95%) ou C (resto).
-function classificarABC(produtosAgregados) {
-  const ordenados = [...produtosAgregados].sort((a, b) => b.valorTotal - a.valorTotal);
-  const totalGeral = ordenados.reduce((s, p) => s + p.valorTotal, 0) || 1;
+// Classificação ABC (curva de Pareto): ordena pelo campo métrico informado (decrescente),
+// calcula o % acumulado sobre o total e classifica cada item em A (até 80% acumulado),
+// B (até 95%) ou C (resto — baixo giro). Recebe o nome do campo numérico a usar como
+// métrica, para poder classificar tanto por volume (quantidade) quanto por valor.
+function classificarABC(produtosAgregados, campoMetrica) {
+  const ordenados = [...produtosAgregados].sort((a, b) => b[campoMetrica] - a[campoMetrica]);
+  const totalGeral = ordenados.reduce((s, p) => s + p[campoMetrica], 0) || 1;
   let acumulado = 0;
   return ordenados.map(p => {
-    acumulado += p.valorTotal;
+    // classifica pelo % acumulado ANTES de somar este item: garante que o item que
+    // completa (ou sozinho já ultrapassa) a faixa ainda entre nela — senão um único
+    // item muito dominante (ex.: 99% do volume sozinho) acabaria caindo em C.
+    const pctAntes = (acumulado / totalGeral) * 100;
+    acumulado += p[campoMetrica];
     const cumulativoPct = (acumulado / totalGeral) * 100;
-    const classe = cumulativoPct <= 80 ? 'A' : (cumulativoPct <= 95 ? 'B' : 'C');
+    const classe = pctAntes < 80 ? 'A' : (pctAntes < 95 ? 'B' : 'C');
     return { ...p, cumulativoPct, classe };
   });
 }
 
-function construirSvgParetoABC(classificados) {
+function construirSvgParetoABC(classificados, campoMetrica) {
   const MAX_BARRAS = 40;
   const exibidos = classificados.slice(0, MAX_BARRAS);
   const larguraTotal = 760, alturaTotal = 200;
@@ -682,15 +672,16 @@ function construirSvgParetoABC(classificados) {
   const alturaUtil = alturaTotal - margem.topo - margem.base;
   const n = Math.max(exibidos.length, 1);
   const larguraBarra = larguraUtil / n;
-  const maxValor = Math.max(...exibidos.map(p => p.valorTotal), 1);
+  const maxValor = Math.max(...exibidos.map(p => p[campoMetrica]), 1);
   const cores = { A: 'var(--vermelho-600)', B: 'var(--alerta)', C: 'var(--grafite-300)' };
 
   const barras = exibidos.map((p, i) => {
     const x = margem.esq + i * larguraBarra;
-    const h = Math.max((p.valorTotal / maxValor) * alturaUtil, 1);
+    const h = Math.max((p[campoMetrica] / maxValor) * alturaUtil, 1);
     const y = margem.topo + (alturaUtil - h);
     const w = Math.max(larguraBarra * 0.8, 0.5);
-    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${cores[p.classe]}"><title>${escaparHTML(p.descricao)} — ${formatarMoeda(p.valorTotal)} (Classe ${p.classe})</title></rect>`;
+    const rotulo = `${escaparHTML(p.descricao)} — ${formatarNumero(p[campoMetrica], 0)} ${escaparHTML(p.unidade || '')} vendidas (Classe ${p.classe})`;
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${cores[p.classe]}"><title>${rotulo}</title></rect>`;
   }).join('');
 
   const pontos = exibidos.map((p, i) => {
@@ -702,7 +693,7 @@ function construirSvgParetoABC(classificados) {
   const y80 = margem.topo + alturaUtil * 0.20;
   const y95 = margem.topo + alturaUtil * 0.05;
 
-  return `<svg viewBox="0 0 ${larguraTotal} ${alturaTotal}" class="grafico-abc-svg" role="img" aria-label="Curva ABC: produtos ordenados por valor vendido com percentual acumulado">
+  return `<svg viewBox="0 0 ${larguraTotal} ${alturaTotal}" class="grafico-abc-svg" role="img" aria-label="Curva ABC: produtos ordenados por volume vendido com percentual acumulado">
     <line x1="${margem.esq}" y1="${y80.toFixed(1)}" x2="${larguraTotal - margem.dir}" y2="${y80.toFixed(1)}" class="linha-referencia"/>
     <line x1="${margem.esq}" y1="${y95.toFixed(1)}" x2="${larguraTotal - margem.dir}" y2="${y95.toFixed(1)}" class="linha-referencia"/>
     <text x="${larguraTotal - margem.dir}" y="${(y80 - 3).toFixed(1)}" class="rotulo-referencia" text-anchor="end">80%</text>
@@ -710,66 +701,6 @@ function construirSvgParetoABC(classificados) {
     ${barras}
     <polyline points="${pontos}" fill="none" class="linha-cumulativa"/>
   </svg>`;
-}
-
-function renderizarCurvaABC(lista) {
-  const agregados = agregarProdutosPorValor(lista);
-  const classificados = classificarABC(agregados);
-  const totalGeral = classificados.reduce((s, p) => s + p.valorTotal, 0);
-
-  const porClasse = { A: [], B: [], C: [] };
-  classificados.forEach(p => porClasse[p.classe].push(p));
-
-  const resumo = document.getElementById('abc-resumo');
-  if (!classificados.length) {
-    resumo.innerHTML = '<p class="vazio-inline">Sem dados ainda — processe cotações para ver a curva ABC.</p>';
-    document.getElementById('abc-grafico').innerHTML = '';
-    document.getElementById('abc-a-corpo').innerHTML = '';
-    document.getElementById('abc-b-corpo').innerHTML = '';
-    document.getElementById('abc-a-contagem').textContent = '';
-    document.getElementById('abc-b-contagem').textContent = '';
-    document.getElementById('abc-c-nota').textContent = '';
-    return;
-  }
-
-  resumo.innerHTML = ['A', 'B', 'C'].map(classe => {
-    const itens = porClasse[classe];
-    const valor = itens.reduce((s, p) => s + p.valorTotal, 0);
-    const pctFaturamento = totalGeral ? (valor / totalGeral * 100) : 0;
-    const pctProdutos = classificados.length ? (itens.length / classificados.length * 100) : 0;
-    return `<div class="abc-pill abc-pill--${classe.toLowerCase()}">
-      <span class="abc-pill-titulo">Classe ${classe}</span>
-      <span class="abc-pill-valor">${itens.length} produto${itens.length === 1 ? '' : 's'}</span>
-      <span class="abc-pill-detalhe">${pctProdutos.toFixed(0)}% dos itens · ${pctFaturamento.toFixed(0)}% do faturamento</span>
-    </div>`;
-  }).join('');
-
-  document.getElementById('abc-grafico').innerHTML = construirSvgParetoABC(classificados) + `
-    <div class="abc-grafico-legenda">
-      <span><i style="background:var(--vermelho-600)"></i>Classe A</span>
-      <span><i style="background:var(--alerta)"></i>Classe B</span>
-      <span><i style="background:var(--grafite-300)"></i>Classe C</span>
-      <span>— linha escura: % acumulado do faturamento</span>
-    </div>`;
-
-  const linhaAbc = p => `
-    <tr>
-      <td class="mono">${escaparHTML(p.codigo)}</td>
-      <td>${escaparHTML(truncar(p.descricao, 40))}</td>
-      <td class="mono">${formatarMoeda(p.valorTotal)}</td>
-      <td class="mono">${p.cumulativoPct.toFixed(0)}%</td>
-    </tr>`;
-
-  document.getElementById('abc-a-contagem').textContent = `(${porClasse.A.length})`;
-  document.getElementById('abc-b-contagem').textContent = `(${porClasse.B.length})`;
-  document.getElementById('abc-a-corpo').innerHTML = porClasse.A.length
-    ? porClasse.A.map(linhaAbc).join('') : '<tr><td colspan="4" class="vazio-inline">Nenhum item na classe A.</td></tr>';
-  document.getElementById('abc-b-corpo').innerHTML = porClasse.B.length
-    ? porClasse.B.map(linhaAbc).join('') : '<tr><td colspan="4" class="vazio-inline">Nenhum item na classe B.</td></tr>';
-
-  document.getElementById('abc-c-nota').textContent = porClasse.C.length
-    ? `Classe C (baixo giro, não listada item a item): ${porClasse.C.length} produto(s), ${(porClasse.C.reduce((s,p)=>s+p.valorTotal,0)/ (totalGeral||1) * 100).toFixed(0)}% do faturamento.`
-    : '';
 }
 
 function renderizarFiltroClientes(lista) {
@@ -826,9 +757,9 @@ function renderizarTabela(lista) {
   `).join('');
 }
 
-// Retorna o nome exato do cliente quando o campo de filtro casa integralmente com um
+// Retorna o nome exato do cliente quando o campo de busca casa integralmente com um
 // dos clientes já processados (ex.: escolhido na sugestão do datalist). Busca parcial
-// (texto digitado pela metade) retorna null e o painel de carteira fica oculto.
+// (texto digitado pela metade) retorna null e o painel de produtos do cliente fica oculto.
 function clienteExatoSelecionado() {
   const valor = document.getElementById('filtro-cliente').value.trim().toLowerCase();
   if (!valor) return null;
@@ -838,8 +769,7 @@ function clienteExatoSelecionado() {
 
 // Carteira de produtos de um cliente: todos os itens distintos (por código) que ele já
 // comprou em qualquer cotação processada, com quantas vezes comprou, quantidade total e
-// o valor unitário/data da compra mais recente. Não é afetada pelos filtros de período/produto —
-// representa sempre o histórico completo do cliente.
+// o valor unitário/data da compra mais recente. Sempre o histórico completo do cliente.
 function obterCarteiraProdutos(nomeCliente) {
   const cotacoesDoCliente = cotacoesAtuais.filter(c => c.cliente === nomeCliente);
   const mapa = new Map();
@@ -862,50 +792,91 @@ function obterCarteiraProdutos(nomeCliente) {
       mapa.set(chave, atual);
     });
   });
-  return [...mapa.values()].sort((a, b) => {
-    if (b.vezesComprado !== a.vezesComprado) return b.vezesComprado - a.vezesComprado;
-    return (b.ultimaCompraISO || '').localeCompare(a.ultimaCompraISO || '');
-  });
+  return [...mapa.values()];
 }
 
-function renderizarCarteira() {
-  const painel = document.getElementById('carteira-panel');
+// Painel único do cliente selecionado: Curva ABC por volume vendido (quantidade) + a
+// carteira completa de produtos, cada linha já com a classe (A/B/C) calculada.
+function renderizarPainelCliente() {
   const nomeCliente = clienteExatoSelecionado();
-  if (!nomeCliente) { painel.hidden = true; return; }
+  const painel = document.getElementById('cliente-produtos-panel');
+  const vazio = document.getElementById('estado-vazio-cliente');
+
+  if (!nomeCliente) {
+    painel.hidden = true;
+    vazio.hidden = false;
+    return;
+  }
+  vazio.hidden = true;
+  painel.hidden = false;
 
   const carteira = obterCarteiraProdutos(nomeCliente);
+  const classificados = classificarABC(carteira, 'quantidadeTotal');
   const totalCotacoes = new Set(cotacoesAtuais.filter(c => c.cliente === nomeCliente).map(c => c.id)).size;
 
   document.getElementById('carteira-cliente-nome').textContent = nomeCliente;
   document.getElementById('carteira-resumo').textContent =
-    carteira.length ? `${carteira.length} produto(s) distinto(s) · ${totalCotacoes} cotação(ões)` : '';
+    classificados.length ? `${classificados.length} produto(s) distinto(s) · ${totalCotacoes} cotação(ões)` : '';
 
-  document.getElementById('carteira-corpo').innerHTML = carteira.length
-    ? carteira.map(p => `
-      <tr>
-        <td class="mono">${escaparHTML(p.codigo)}</td>
-        <td>${escaparHTML(p.descricao)}</td>
-        <td class="mono">${formatarNumero(p.quantidadeTotal)} ${escaparHTML(p.unidade)}</td>
-        <td class="mono">${p.vezesComprado}</td>
-        <td class="mono">${escaparHTML(p.ultimaCompra || '—')}</td>
-        <td class="mono">${formatarMoeda(p.valorUnitarioRecente)}</td>
-      </tr>`).join('')
-    : '<tr><td colspan="6" class="vazio-inline">Nenhum item identificado nas cotações deste cliente.</td></tr>';
+  const resumoEl = document.getElementById('abc-resumo');
+  const graficoEl = document.getElementById('abc-grafico');
+  const corpoEl = document.getElementById('carteira-corpo');
 
-  painel.hidden = false;
+  if (!classificados.length) {
+    resumoEl.innerHTML = '<p class="vazio-inline">Nenhum item identificado nas cotações deste cliente.</p>';
+    graficoEl.innerHTML = '';
+    corpoEl.innerHTML = '';
+    return;
+  }
+
+  const totalVolume = classificados.reduce((s, p) => s + p.quantidadeTotal, 0);
+  const porClasse = { A: [], B: [], C: [] };
+  classificados.forEach(p => porClasse[p.classe].push(p));
+
+  resumoEl.innerHTML = ['A', 'B', 'C'].map(classe => {
+    const itens = porClasse[classe];
+    const volume = itens.reduce((s, p) => s + p.quantidadeTotal, 0);
+    const pctVolume = totalVolume ? (volume / totalVolume * 100) : 0;
+    const pctProdutos = classificados.length ? (itens.length / classificados.length * 100) : 0;
+    return `<div class="abc-pill abc-pill--${classe.toLowerCase()}">
+      <span class="abc-pill-titulo">Classe ${classe}</span>
+      <span class="abc-pill-valor">${itens.length} produto${itens.length === 1 ? '' : 's'}</span>
+      <span class="abc-pill-detalhe">${pctProdutos.toFixed(0)}% dos itens · ${pctVolume.toFixed(0)}% do volume</span>
+    </div>`;
+  }).join('');
+
+  graficoEl.innerHTML = construirSvgParetoABC(classificados, 'quantidadeTotal') + `
+    <div class="abc-grafico-legenda">
+      <span><i style="background:var(--vermelho-600)"></i>Classe A — vende mais</span>
+      <span><i style="background:var(--alerta)"></i>Classe B — vende às vezes</span>
+      <span><i style="background:var(--grafite-300)"></i>Classe C — vende pouco</span>
+      <span>— linha escura: % acumulado do volume</span>
+    </div>`;
+
+  corpoEl.innerHTML = classificados.map(p => `
+    <tr>
+      <td><span class="badge-classe badge-classe--${p.classe.toLowerCase()}">${p.classe}</span></td>
+      <td class="mono">${escaparHTML(p.codigo)}</td>
+      <td>${escaparHTML(p.descricao)}</td>
+      <td class="mono">${formatarNumero(p.quantidadeTotal)} ${escaparHTML(p.unidade)}</td>
+      <td class="mono">${p.vezesComprado}</td>
+      <td class="mono">${escaparHTML(p.ultimaCompra || '—')}</td>
+      <td class="mono">${formatarMoeda(p.valorUnitarioRecente)}</td>
+    </tr>`).join('');
 }
 
-function renderizarResultados() {
-  const filtradas = aplicarFiltros(cotacoesAtuais);
-  renderizarCurvaABC(filtradas);
-  renderizarTabela(filtradas);
-  renderizarCarteira();
+// Aba "Cotações": tabela com todas as cotações, filtrável só por produto (não por cliente —
+// isso já é o foco da aba "Cliente").
+function renderizarTabelaCotacoes() {
+  renderizarTabela(aplicarFiltros(cotacoesAtuais));
 }
 
 async function atualizarInterfaceCompleta() {
   cotacoesAtuais = ordenarCotacoes(await obterTodasCotacoes());
   renderizarFiltroClientes(cotacoesAtuais);
-  renderizarResultados();
+  document.getElementById('tab-cotacoes-contagem').textContent = cotacoesAtuais.length ? `(${cotacoesAtuais.length})` : '';
+  renderizarPainelCliente();
+  renderizarTabelaCotacoes();
 }
 
 /* =========================================================================
@@ -959,11 +930,11 @@ function exportarJSON() {
 function exportarCarteiraCSV() {
   const nomeCliente = clienteExatoSelecionado();
   if (!nomeCliente) return;
-  const carteira = obterCarteiraProdutos(nomeCliente);
-  if (!carteira.length) { notificar('Não há produtos para exportar.', 'alerta'); return; }
-  const linhas = [['Codigo', 'Descricao', 'Qtd Total Comprada', 'Unidade', 'Numero de Compras', 'Ultima Compra', 'Ultimo Valor Unitario']];
-  carteira.forEach(p => {
-    linhas.push([p.codigo, p.descricao, formatarNumero(p.quantidadeTotal), p.unidade, String(p.vezesComprado), p.ultimaCompra || '', formatarNumero(p.valorUnitarioRecente)]);
+  const classificados = classificarABC(obterCarteiraProdutos(nomeCliente), 'quantidadeTotal');
+  if (!classificados.length) { notificar('Não há produtos para exportar.', 'alerta'); return; }
+  const linhas = [['Classe', 'Codigo', 'Descricao', 'Qtd Total Comprada', 'Unidade', 'Numero de Compras', 'Ultima Compra', 'Ultimo Valor Unitario']];
+  classificados.forEach(p => {
+    linhas.push([p.classe, p.codigo, p.descricao, formatarNumero(p.quantidadeTotal), p.unidade, String(p.vezesComprado), p.ultimaCompra || '', formatarNumero(p.valorUnitarioRecente)]);
   });
   const csv = linhas.map(l => l.map(campo => escaparCampoCSV(String(campo))).join(';')).join('\r\n');
   const nomeArquivo = `carteira_${nomeCliente.replace(/[^a-z0-9]+/gi, '_').toLowerCase()}_${timestampArquivo()}.csv`;
@@ -1081,14 +1052,28 @@ function configurarDropzone() {
   });
 }
 
-function configurarFiltros() {
-  ['filtro-cliente', 'filtro-produto'].forEach(id => {
-    document.getElementById(id).addEventListener('input', renderizarResultados);
+function configurarBuscaCliente() {
+  document.getElementById('filtro-cliente').addEventListener('input', renderizarPainelCliente);
+}
+
+function configurarFiltroProduto() {
+  document.getElementById('filtro-produto').addEventListener('input', renderizarTabelaCotacoes);
+}
+
+function ativarAba(nome) {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    const ativa = btn.dataset.tab === nome;
+    btn.classList.toggle('tab-btn--ativa', ativa);
+    btn.setAttribute('aria-selected', String(ativa));
   });
-  document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
-    document.getElementById('filtro-cliente').value = '';
-    document.getElementById('filtro-produto').value = '';
-    renderizarResultados();
+  document.querySelectorAll('.tab-painel').forEach(painel => {
+    painel.hidden = painel.id !== `tab-${nome}`;
+  });
+}
+
+function configurarAbas() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => ativarAba(btn.dataset.tab));
   });
 }
 
@@ -1144,8 +1129,10 @@ async function iniciar() {
   registrarServiceWorker();
   configurarStatusConexao();
   configurarInstalacaoPWA();
+  configurarAbas();
   configurarDropzone();
-  configurarFiltros();
+  configurarBuscaCliente();
+  configurarFiltroProduto();
   configurarExportacao();
   configurarTabela();
   await atualizarInterfaceCompleta();
