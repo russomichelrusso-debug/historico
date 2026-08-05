@@ -464,7 +464,8 @@ function limparNumero(str) {
 function extrairCliente(texto) {
   const m = texto.match(/Cliente\s*:\s*(?:\d{2,10}\s*[-–—]?\s*)?([^\n\r]{2,120})/i);
   if (!m) return null;
-  const nome = m[1].trim().replace(/\s{2,}.*$/, '').trim();
+  let nome = m[1].trim().replace(/\s{2,}.*$/, '').trim();
+  nome = nome.replace(/\s*[-–—]\s*$/, '').trim(); // remove hífen solto no final (quando o apelido vem vazio)
   return nome || null;
 }
 
@@ -500,6 +501,14 @@ function tentarCasarLinhaItem(str) {
 }
 
 function extrairProdutos(texto) {
+  // A Cortag tem pelo menos 2 modelos de cotação (unidades/filiais diferentes). Ambos têm
+  // 6 números após a unidade, mas o significado das colunas muda:
+  //  - modelo "ICMS-ST/Preço Unit. Imp": o valor total do item é o PENÚLTIMO número (índice 9).
+  //  - modelo "R$ ... c/ Impostos": o valor total do item é o ÚLTIMO número (índice 10) —
+  //    o penúltimo ali é só o preço unitário com impostos, não o total da linha.
+  // Detecta pelo texto do próprio documento (a expressão "c/ Impostos" só aparece no 2º modelo).
+  const totalNoUltimoGrupo = /c\/\s*Impostos/i.test(texto);
+
   const linhas = texto.split(/\r?\n/).map(l => l.trim().replace(/[ \t]{2,}/g, ' ')).filter(Boolean);
   const produtos = [];
   let i = 0;
@@ -529,9 +538,12 @@ function extrairProdutos(texto) {
       const quantidade = limparNumero(m[3]);
       const unidade = m[4].toUpperCase();
       const valorUnitario = limparNumero(m[5]);
-      // "completa" (10 grupos): valor total é o penúltimo grupo (índice 9), antes do preço unit. imp.
-      // "simples" (6 grupos): valor total é o último grupo (índice 6).
-      let valorTotal = formato === 'completa' ? limparNumero(m[9]) : limparNumero(m[6]);
+      let valorTotal;
+      if (formato === 'completa') {
+        valorTotal = limparNumero(totalNoUltimoGrupo ? m[10] : m[9]);
+      } else {
+        valorTotal = limparNumero(m[6]);
+      }
       if (valorTotal === 0 && quantidade > 0 && valorUnitario > 0) {
         valorTotal = +(quantidade * valorUnitario).toFixed(2);
       }
